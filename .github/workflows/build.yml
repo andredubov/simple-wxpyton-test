@@ -14,6 +14,16 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            script-ext: '.exe'
+            shell: powershell
+          - os: ubuntu-latest
+            script-ext: ''
+            shell: bash
+          - os: macos-latest
+            script-ext: ''
+            shell: bash
     
     steps:
       - uses: actions/checkout@v4
@@ -24,13 +34,24 @@ jobs:
       - name: Install Linux deps
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install -y libgtk-3-dev
+        shell: bash
         
       - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") {
+            pip install -r requirements.txt
+          }
+        shell: powershell
+        
+      - name: Install dependencies (Unix)
+        if: matrix.os != 'windows-latest'
         run: |
           python -m pip install --upgrade pip
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           fi
+        shell: bash
         
       - name: Build with Nuitka
         uses: Nuitka/Nuitka-Action@main
@@ -40,7 +61,7 @@ jobs:
           standalone: true
           enable-plugin: wx
           windows-disable-console: ${{ matrix.os == 'windows-latest' }}
-          output-dir: ./dist/${{ matrix.config.id }}
+          output-dir: ./dist/${{ matrix.os }}
           show-progress: true
           show-memory: true
           
@@ -50,6 +71,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ format('./{0}{1}', env.APP_NAME, matrix.os == 'windows-latest' && '.exe' || '') }}
-          asset_name: ${{ format('{0}-{1}-{2}{3}', env.APP_NAME, matrix.os, github.ref_name, matrix.os == 'windows-latest' && '.exe' || '') }}
+          asset_path: ${{ format('./dist/{0}/{1}{2}', matrix.os, env.APP_NAME, matrix.script-ext)}}
+          asset_name: ${{ format('{0}-{1}-{2}{3}', env.APP_NAME, matrix.os, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
