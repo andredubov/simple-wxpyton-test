@@ -1,0 +1,55 @@
+name: Build Release
+
+on:
+  release:
+    types: [published]
+
+env:
+  PYTHON_VERSION: '3.12'
+  APP_NAME: 'myapp'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install Linux deps
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libgtk-3-dev
+        
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+        
+      - name: Build with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          script-name: main.py
+          onefile: true
+          standalone: true
+          enable-plugin: wx
+          windows-disable-console: ${{ matrix.os == 'windows-latest' }}
+          output-dir: ./dist/${{ matrix.config.id }}
+          show-progress: true
+          show-memory: true
+          
+      - name: Upload asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ format('./{0}{1}', env.APP_NAME, matrix.os == 'windows-latest' && '.exe' || '') }}
+          asset_name: ${{ format('{0}-{1}-{2}{3}', env.APP_NAME, matrix.os, github.ref_name, matrix.os == 'windows-latest' && '.exe' || '') }}
+          asset_content_type: application/octet-stream
