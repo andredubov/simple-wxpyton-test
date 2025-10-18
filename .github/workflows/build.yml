@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-win32:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Используем Ubuntu 20.04 где есть Python 3.7
     outputs:
       upload_url: ${{ steps.set-upload.outputs.upload_url }}
     
