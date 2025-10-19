@@ -19,13 +19,15 @@ jobs:
           - os: windows-latest
             script-ext: '.exe'
             shell: powershell
+            python-version: '3.7.9'
+            python-arch: 'x86'
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: env.PYTHON_VERSION
-          architecture: env.PYTHON_ARCH
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.python-arch }}
         
       - name: Install dependencies
         if: matrix.os == 'windows-latest'
