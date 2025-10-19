@@ -42,7 +42,7 @@ jobs:
           $nuitkaArgs = @(
             "--standalone",
             "--onefile", 
-            "--assume-yes-for-downloads,"
+            "--assume-yes-for-downloads",
             "--windows-console-mode=disable",
             "--include-package=wx",
             "--include-package-data=wx",
