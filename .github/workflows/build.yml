@@ -37,16 +37,16 @@ jobs:
         shell: powershell
         
       - name: Build with Nuitka
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          script-name: main.py
-          onefile: true
-          standalone: true
-          enable-plugins: wxwidgets
-          windows-disable-console: ${{ matrix.os == 'windows-latest' }}
-          output-dir: ./dist/${{ matrix.os }}
-          show-progress: true
-          show-memory: true
+        run: |
+            python -m nuitka 
+            --standalone \
+            --onefile \
+            --windows-console-mode=disable \
+            --include-package=wx \
+            --follow-imports \
+            --include-package-data=wx \
+            --noinclude-unittest-mode=nofollow \
+            --include-data-files=../assets/*=assets/
           
       - name: Upload asset
         uses: actions/upload-release-asset@v1
