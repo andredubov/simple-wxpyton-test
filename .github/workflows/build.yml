@@ -1,87 +1,78 @@
-name: Build Win32
+name: Build Release
 
 on:
   release:
     types: [published]
 
+env:
+  PYTHON_VERSION: '3.12'
+  APP_NAME: 'myapp'
+
 jobs:
-  build-win32:
-    runs-on: ubuntu-20.04  # Используем Ubuntu 20.04 где есть Python 3.7
-    outputs:
-      upload_url: ${{ steps.set-upload.outputs.upload_url }}
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        include:
+          - os: windows-latest
+            script-ext: '.exe'
+            shell: powershell
+          - os: ubuntu-latest
+            script-ext: ''
+            shell: bash
+          - os: macos-latest
+            script-ext: ''
+            shell: bash
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.7.9'
           architecture: 'x86'  # Явно указываем x86 архитектуру
-          
-      - name: Install cross-compilation environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            mingw-w64 \
-            gcc-mingw-w64-i686 \
-            ccache \
-            wine \
-            patchelf
-          
-      - name: Install Python dependencies
+
+      - name: Install Linux deps
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libgtk-3-dev
+        shell: bash
+        
+      - name: Install dependencies
+        if: matrix.os == 'windows-latest'
         run: |
           python -m pip install --upgrade pip
-          pip install nuitka
+          if (Test-Path "requirements.txt") {
+            pip install -r requirements.txt
+          }
+        shell: powershell
+        
+      - name: Install dependencies (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          python -m pip install --upgrade pip
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           fi
-          
-      - name: Build for Windows 32-bit
-        run: |
-          python -m nuitka \
-            --onefile \
-            --standalone \
-            --windows-console-mode=disable \
-            --include-package=wx \
-            --follow-imports \ 
-            --include-package-data=wx \
-            --noinclude-unittest-mode=nofollow \
-            --mingw64 \
-            --assume-yes-for-downloads \
-            --output-filename=myapp-win32.exe \
-            main.py
-          
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        shell: bash
+        
+      - name: Build with Nuitka
+        uses: Nuitka/Nuitka-Action@main
         with:
-          name: myapp-win32
-          path: myapp-win32.exe
+          script-name: main.py
+          onefile: true
+          standalone: true
+          enable-plugin: wx
+          windows-disable-console: ${{ matrix.os == 'windows-latest' }}
+          output-dir: ./dist/${{ matrix.os }}
+          show-progress: true
+          show-memory: true
           
-      - name: Get upload URL
-        id: set-upload
-        run: echo "upload_url=${{ github.event.release.upload_url }}" >> $GITHUB_OUTPUT
-          
-  upload-release:
-    needs: build-win32
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: myapp-win32
-
-      - name: Verify downloaded file
-        run: |
-          ls -la
-          file myapp-win32.exe || true
-
-      - name: Upload to release
+      - name: Upload asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.build-win32.outputs.upload_url }}
-          asset_path: ./myapp-win32.exe
-          asset_name: myapp-windows-32bit.exe
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ format('./dist/{0}/{1}{2}', matrix.os, env.APP_NAME, matrix.script-ext)}}
+          asset_name: ${{ format('{0}-{1}-{2}{3}', env.APP_NAME, matrix.os, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
