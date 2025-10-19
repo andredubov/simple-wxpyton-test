@@ -37,16 +37,14 @@ jobs:
         shell: powershell
         
       - name: Build with Nuitka
+        if: matrix.os == 'windows-latest'
         run: |
-            python -m nuitka 
-            --standalone \
-            --onefile \
-            --windows-console-mode=disable \
-            --include-package=wx \
+            python -m nuitka --standalone --onefile --windows-console-mode=disable --include-package=wx \
             --follow-imports \
             --include-package-data=wx \
             --noinclude-unittest-mode=nofollow \
             --include-data-files=../assets/*=assets/
+        shell: powershell
           
       - name: Upload asset
         uses: actions/upload-release-asset@v1
