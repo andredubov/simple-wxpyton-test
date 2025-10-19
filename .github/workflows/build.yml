@@ -42,7 +42,7 @@ jobs:
           script-name: main.py
           onefile: true
           standalone: true
-          enable-plugins: wx
+          enable-plugins: wxwidgets
           windows-disable-console: ${{ matrix.os == 'windows-latest' }}
           output-dir: ./dist/${{ matrix.os }}
           show-progress: true
