@@ -65,11 +65,11 @@ jobs:
         shell: powershell
 
       - name: Upload asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ${{ format('./dist/{0}/{1}{2}', matrix.os, env.APP_NAME, matrix.script-ext)}}
-          asset_name: ${{ format('{0}-{1}-{2}{3}', env.APP_NAME, matrix.os, github.ref_name, matrix.script-ext) }}
+          asset_name: ${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os, matrix.python-arch, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
