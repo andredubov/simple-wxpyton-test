@@ -5,7 +5,8 @@ on:
     types: [published]
 
 env:
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.7.9'
+  PYTHON_ARCH: 'x86'
   APP_NAME: 'myapp'
 
 jobs:
@@ -18,24 +19,13 @@ jobs:
           - os: windows-latest
             script-ext: '.exe'
             shell: powershell
-          - os: ubuntu-latest
-            script-ext: ''
-            shell: bash
-          - os: macos-latest
-            script-ext: ''
-            shell: bash
-    
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.7.9'
-          architecture: 'x86'  # Явно указываем x86 архитектуру
-
-      - name: Install Linux deps
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get install -y libgtk-3-dev
-        shell: bash
+          python-version: env.PYTHON_VERSION
+          architecture: env.PYTHON_ARCH
         
       - name: Install dependencies
         if: matrix.os == 'windows-latest'
@@ -45,15 +35,6 @@ jobs:
             pip install -r requirements.txt
           }
         shell: powershell
-        
-      - name: Install dependencies (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
-          fi
-        shell: bash
         
       - name: Build with Nuitka
         uses: Nuitka/Nuitka-Action@main
