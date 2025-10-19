@@ -36,6 +36,11 @@ jobs:
           }
         shell: powershell
 
+      - name: Create output directory
+        if: matrix.os == 'windows-latest'
+        run: New-Item -ItemType Directory -Force -Path "./dist/windows-latest"
+        shell: powershell
+
       - name: Build with Nuitka
         if: matrix.os == 'windows-latest'
         run: |
@@ -48,6 +53,8 @@ jobs:
             "--include-package-data=wx",
             "--noinclude-unittest-mode=nofollow",
             "--include-data-files=./assets/*=assets/",
+            "--output-dir=./dist/windows-latest",
+            "--output-filename=${{ env.APP_NAME }}${{ matrix.script-ext }}",
             "main.py"
           )
           python -m nuitka $nuitkaArgs
