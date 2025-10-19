@@ -5,8 +5,6 @@ on:
     types: [published]
 
 env:
-  PYTHON_VERSION: '3.7.9'
-  PYTHON_ARCH: 'x86'
   APP_NAME: 'myapp'
 
 jobs:
@@ -19,8 +17,8 @@ jobs:
           - os: windows-latest
             script-ext: '.exe'
             shell: powershell
-            python-version: '3.7.9'
-            python-arch: 'x86'
+            python-version: '3.12'
+            python-arch: 'x64'
 
     steps:
       - uses: actions/checkout@v4
