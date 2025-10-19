@@ -35,17 +35,24 @@ jobs:
             pip install -r requirements.txt
           }
         shell: powershell
-        
+
       - name: Build with Nuitka
         if: matrix.os == 'windows-latest'
         run: |
-            python -m nuitka --standalone --onefile --windows-console-mode=disable --include-package=wx \
-            --follow-imports \
-            --include-package-data=wx \
-            --noinclude-unittest-mode=nofollow \
-            --include-data-files=../assets/*=assets/
+          $nuitkaArgs = @(
+            "--standalone",
+            "--onefile", 
+            "--windows-console-mode=disable",
+            "--include-package=wx",
+            "--follow-imports",
+            "--include-package-data=wx",
+            "--noinclude-unittest-mode=nofollow",
+            "--include-data-files=./assets/*=assets/",
+            "main.py"
+          )
+          python -m nuitka $nuitkaArgs
         shell: powershell
-          
+
       - name: Upload asset
         uses: actions/upload-release-asset@v1
         env:
