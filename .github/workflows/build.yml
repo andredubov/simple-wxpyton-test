@@ -96,7 +96,7 @@ jobs:
         run: |
           # Create build directory
           $buildPath = "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}"
-          $appName = "./${{ env.APP_NAME }}${{ matrix.script-ext }}"
+          $appName = "${{ env.APP_NAME }}${{ matrix.script-ext }}"
           New-Item -ItemType Directory -Force -Path $buildPath
           
           Write-Host "Starting Nuitka build for ${{ matrix.python-version }} (${{ matrix.python-arch }})..."
