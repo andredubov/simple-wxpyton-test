@@ -67,7 +67,7 @@ jobs:
           }
 
           Write-Host "✓ All required files found"
-        shell: ${{ matrix.shell }}
+        shell: powershell
 
       - uses: actions/setup-python@v5
         with:
@@ -89,7 +89,7 @@ jobs:
           if (Test-Path "requirements.txt") {
             pip install -r requirements.txt
           }
-        shell: ${{ matrix.shell }}
+        shell: powershell
 
       - name: Build with Nuitka
         if: matrix.os == 'windows-latest'
@@ -128,7 +128,7 @@ jobs:
             Write-Error "❌ Nuitka build failed with exit code: $LASTEXITCODE"
             exit $LASTEXITCODE
           }
-        shell: ${{ matrix.shell }}
+        shell: powershell
 
       - name: Verify build result
         run: |
@@ -150,7 +150,7 @@ jobs:
             Get-ChildItem "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -Recurse | Format-Table Name, Length
             exit 1
           }
-        shell: ${{ matrix.shell }}
+        shell: powershell
 
       - name: Upload asset
         uses: actions/upload-release-asset@v1.0.2
@@ -166,4 +166,4 @@ jobs:
         run: |
           $assetName = "${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}"
           Write-Host "✓ Asset uploaded successfully: $assetName"
-        shell: ${{ matrix.shell }}
+        shell: powershell
