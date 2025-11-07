@@ -30,19 +30,42 @@ jobs:
             shell: powershell
             python-version: '3.11'
             python-arch: 'x64'
+            build-dir: 'windows-x64'
           - os: windows-latest
             os-name: windows
             script-ext: '.exe'
             shell: powershell
             python-version: '3.7.9'
             python-arch: 'x86'
+            build-dir: 'windows-x86'
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check required files
+        run: |
+          if (!(Test-Path "${{ env.ICON_FILE_PATH }}")) {
+            Write-Error "Icon file not found: ${{ env.ICON_FILE_PATH }}"
+            exit 1
+          }
+          if (!(Test-Path "${{ env.SPLASH_SCREEN_FILE_PATH }}")) {
+            Write-Error "Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+            exit 1
+          }
+        shell: powershell
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.python-arch }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         if: matrix.os == 'windows-latest'
@@ -83,6 +106,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ format('./${{ env.BUILD_DIR }}/{0}/{1}{2}', matrix.os, env.APP_NAME, matrix.script-ext)}}
+          asset_path: ${{  format('./{0}/{1}/{2}{3}', env.BUILD_DIR, matrix.build-dir, env.APP_NAME, matrix.script-ext) }}
           asset_name: ${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
