@@ -66,8 +66,8 @@ jobs:
             exit 1
           }
 
-          Write-Host "✓ All required files found"
-        shell: powershell
+          Write-Host "All required files found"
+        shell: pwsh
 
       - uses: actions/setup-python@v5
         with:
