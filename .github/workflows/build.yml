@@ -165,5 +165,5 @@ jobs:
       - name: Show upload confirmation
         run: |
           $assetName = "${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}"
-          Write-Host "✓ Asset uploaded successfully: $assetName"
+          Write-Host "Asset uploaded successfully: $assetName"
         shell: powershell
