@@ -10,8 +10,8 @@ env:
   PRODUCT_VERSION: '1.0.0.0'
   FILE_VERSION: '1.0.0.0'
   BUILD_DIR: '.build'
-  ICON_FILE_PATH: '.\assets\graph-report.ico'
-  SPLASH_SCREEN_FILE_PATH: '.\assets\logo.png'
+  ICON_FILE_PATH: './assets/graph-report.ico'
+  SPLASH_SCREEN_FILE_PATH: './assets/logo.png'
 
 permissions:
   contents: write
@@ -44,15 +44,30 @@ jobs:
 
       - name: Check required files
         run: |
-          if (!(Test-Path "${{ env.ICON_FILE_PATH }}")) {
-            Write-Error "Icon file not found: ${{ env.ICON_FILE_PATH }}"
+          $iconPath = "${{ env.ICON_FILE_PATH }}"
+          $splashPath = "${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          $mainPath = "./main.py"
+
+          Write-Host "Checking required files..."
+          Write-Host "Icon: $iconPath"
+          Write-Host "Splash: $splashPath" 
+          Write-Host "Main script: $mainPath"
+
+          if (!(Test-Path $iconPath)) {
+            Write-Error "❌ Icon file not found: $iconPath"
             exit 1
           }
-          if (!(Test-Path "${{ env.SPLASH_SCREEN_FILE_PATH }}")) {
-            Write-Error "Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          if (!(Test-Path $splashPath)) {
+            Write-Error "❌ Splash screen file not found: $splashPath"
             exit 1
           }
-        shell: powershell
+          if (!(Test-Path $mainPath)) {
+            Write-Error "❌ Main script not found: $mainPath"
+            exit 1
+          }
+
+          Write-Host "✓ All required files found"
+        shell: ${{ matrix.shell }}
 
       - uses: actions/setup-python@v5
         with:
@@ -62,7 +77,7 @@ jobs:
       - name: Cache pip packages
         uses: actions/cache@v3
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -74,11 +89,19 @@ jobs:
           if (Test-Path "requirements.txt") {
             pip install -r requirements.txt
           }
-        shell: powershell
+        shell: ${{ matrix.shell }}
 
       - name: Build with Nuitka
         if: matrix.os == 'windows-latest'
         run: |
+          # Create build directory
+          $buildPath = "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}"
+          $appName = "./${{ env.APP_NAME }}${{ matrix.script-ext }}"
+          New-Item -ItemType Directory -Force -Path $buildPath
+          
+          Write-Host "Starting Nuitka build for ${{ matrix.python-version }} (${{ matrix.python-arch }})..."
+          Write-Host "Build output: $buildPath"
+
           $nuitkaArgs = @(
             "--mode=onefile"
             "--windows-console-mode=disable"
@@ -91,14 +114,43 @@ jobs:
             "--product-name=${{ env.APP_NAME }}"
             "--windows-file-version=${{ env.FILE_VERSION }}"
             "--windows-product-version=${{ env.PRODUCT_VERSION }}"
-            "--output-dir=.\${{ env.BUILD_DIR }}"
-            "--output-filename=${{ env.APP_NAME }}${{ matrix.script-ext }}"
+            "--output-dir=$buildPath"
+            "--output-filename=$appName"
             "--windows-icon-from-ico=${{ env.ICON_FILE_PATH }}"
             "--onefile-windows-splash-screen-image=${{ env.SPLASH_SCREEN_FILE_PATH }}"
-            ".\main.py"
+            "./main.py"
           )
-          python -m nuitka $nuitkaArgs
-        shell: powershell
+
+          Write-Host "Nuitka command: python -m nuitka $nuitkaArgs"
+          python -m nuitka @nuitkaArgs
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "❌ Nuitka build failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+        shell: ${{ matrix.shell }}
+
+      - name: Verify build result
+        run: |
+          $exePath = "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/${{ env.APP_NAME }}${{ matrix.script-ext }}"
+          Write-Host "Verifying build result: $exePath"
+          
+          if (Test-Path $exePath) {
+            $fileInfo = Get-Item $exePath
+            $fileSize = [math]::Round($fileInfo.Length / 1MB, 2)
+            Write-Host "✓ Build successful!"
+            Write-Host "  File: $($fileInfo.Name)"
+            Write-Host "  Size: $fileSize MB"
+            Write-Host "  Path: $($fileInfo.FullName)"
+            Write-Host "  Modified: $($fileInfo.LastWriteTime)"
+          } else {
+            Write-Error "❌ Build failed: Executable not found at $exePath"
+            # List directory contents for debugging
+            Write-Host "Directory contents:"
+            Get-ChildItem "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -Recurse | Format-Table Name, Length
+            exit 1
+          }
+        shell: ${{ matrix.shell }}
 
       - name: Upload asset
         uses: actions/upload-release-asset@v1.0.2
@@ -106,6 +158,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{  format('./{0}/{1}/{2}{3}', env.BUILD_DIR, matrix.build-dir, env.APP_NAME, matrix.script-ext) }}
+          asset_path: ${{ format('./{0}/{1}/{2}{3}', env.BUILD_DIR, matrix.build-dir, env.APP_NAME, matrix.script-ext) }}
           asset_name: ${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
+
+      - name: Show upload confirmation
+        run: |
+          $assetName = "${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}"
+          Write-Host "✓ Asset uploaded successfully: $assetName"
+        shell: ${{ matrix.shell }}

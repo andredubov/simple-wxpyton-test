@@ -7,6 +7,7 @@ class MainFrame(wx.Frame):
         super().__init__(parent, title=title)
         self.panel = wx.Panel(self)
 
+
 class MyApp(wx.App):
     def OnInit(self):
         frame = MainFrame(parent=None, title="Simple wxPython Application")
