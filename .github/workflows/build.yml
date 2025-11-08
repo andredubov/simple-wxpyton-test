@@ -12,6 +12,8 @@ env:
   BUILD_DIR: '.build'
   ICON_FILE_PATH: './assets/graph-report.ico'
   SPLASH_SCREEN_FILE_PATH: './assets/logo.png'
+  MACOS_ICON_PATH: './assets/graph-report.icns'
+  MACOS_BACKGROUND_PATH: './assets/dmg-background.png'
 
 permissions:
   contents: write
@@ -96,18 +98,13 @@ jobs:
         run: |
           echo "Checking required files..."
           echo "Icon: ${{ env.ICON_FILE_PATH }}"
+          echo "macOS Icon: ${{ env.MACOS_ICON_PATH }}"
           echo "Splash: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          echo "DMG Background: ${{ env.MACOS_BACKGROUND_PATH }}"
           echo "Main script: ./main.py"
           echo "Requirements: ${{ matrix.requirements-path }}"
 
-          if [ ! -f "${{ env.ICON_FILE_PATH }}" ]; then
-            echo "❌ Icon file not found: ${{ env.ICON_FILE_PATH }}"
-            exit 1
-          fi
-          if [ ! -f "${{ env.SPLASH_SCREEN_FILE_PATH }}" ]; then
-            echo "❌ Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
-            exit 1
-          fi
+          # Проверяем основные файлы
           if [ ! -f "./main.py" ]; then
             echo "❌ Main script not found: ./main.py"
             exit 1
@@ -115,6 +112,20 @@ jobs:
           if [ ! -f "${{ matrix.requirements-path }}" ]; then
             echo "❌ Requirements file not found: ${{ matrix.requirements-path }}"
             exit 1
+          fi
+
+          # Проверяем файлы для сборки
+          if [ ! -f "${{ env.ICON_FILE_PATH }}" ]; then
+            echo "⚠️  Windows icon file not found: ${{ env.ICON_FILE_PATH }}"
+          fi
+          if [ ! -f "${{ env.MACOS_ICON_PATH }}" ]; then
+            echo "⚠️  macOS icon file not found: ${{ env.MACOS_ICON_PATH }} - will try to use Windows icon"
+          fi
+          if [ ! -f "${{ env.SPLASH_SCREEN_FILE_PATH }}" ]; then
+            echo "⚠️  Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          fi
+          if [ ! -f "${{ env.MACOS_BACKGROUND_PATH }}" ]; then
+            echo "⚠️  DMG background file not found: ${{ env.MACOS_BACKGROUND_PATH }} - will create DMG without background"
           fi
 
           echo "All required files found"
@@ -201,6 +212,15 @@ jobs:
           echo "Starting Nuitka build for ${{ matrix.python-version }} (${{ matrix.python-arch }})..."
           echo "Build output: $build_path"
 
+          # Определяем какой файл иконки использовать
+          if [ -f "${{ env.MACOS_ICON_PATH }}" ]; then
+            icon_path="${{ env.MACOS_ICON_PATH }}"
+            echo "Using macOS icon: $icon_path"
+          else
+            icon_path="${{ env.ICON_FILE_PATH }}"
+            echo "Using Windows icon as fallback: $icon_path"
+          fi
+
           # For macOS, we use different Nuitka arguments
           nuitka_args=(
             "--mode=app"
@@ -215,7 +235,7 @@ jobs:
             "--product-name=${{ env.APP_NAME }}"
             "--output-dir=$build_path"
             "--macos-app-name=$app_name"
-            "--macos-app-icon=${{ env.ICON_FILE_PATH }}"
+            "--macos-app-icon=$icon_path"
             "--macos-app-version=${{ env.PRODUCT_VERSION }}"
             "./main.py"
           )
@@ -289,6 +309,8 @@ jobs:
             # Show that it's a valid app bundle
             if [ -d "$build_path/Contents" ]; then
               echo "  Valid app bundle structure detected"
+              echo "  Contents:"
+              find "$build_path/Contents" -type f | head -10
             fi
           else
             echo "❌ Build failed: App bundle not found at $build_path"
@@ -297,6 +319,90 @@ jobs:
             ls -la "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/"
             echo "Looking for any .app bundles:"
             find "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -name "*.app" -type d
+            exit 1
+          fi
+        shell: bash
+
+      - name: Install DMG creation tools (macOS)
+        if: matrix.os-name == 'macos'
+        run: |
+          # Install create-dmg if not available
+          if ! command -v create-dmg &> /dev/null; then
+            echo "Installing create-dmg..."
+            brew install create-dmg
+          fi
+          
+          # Verify installation
+          create-dmg --version
+        shell: bash
+
+      - name: Create DMG file (macOS)
+        if: matrix.os-name == 'macos'
+        run: |
+          build_path="./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}"
+          app_name="${{ env.APP_NAME }}"
+          dmg_name="${{ format('{0}-{1}-{2}-{3}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}"
+          
+          echo "Creating DMG file..."
+          echo "App path: $build_path/$app_name.app"
+          echo "Output: $build_path/${dmg_name}.dmg"
+          
+          # Проверяем существование .app бандла
+          if [ ! -d "$build_path/$app_name.app" ]; then
+            echo "❌ App bundle not found: $build_path/$app_name.app"
+            exit 1
+          fi
+
+          # Сначала пробуем create-dmg с бэкграундом если есть
+          if [ -f "${{ env.MACOS_BACKGROUND_PATH }}" ]; then
+            echo "Creating DMG with background..."
+            create-dmg \
+              --volname "$app_name" \
+              --volicon "${{ env.MACOS_ICON_PATH }}" \
+              --background "${{ env.MACOS_BACKGROUND_PATH }}" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --icon "$app_name.app" 150 190 \
+              --hide-extension "$app_name.app" \
+              --app-drop-link 450 190 \
+              --no-internet-enable \
+              "$build_path/${dmg_name}.dmg" \
+              "$build_path/$app_name.app" || echo "create-dmg with background failed, trying without..."
+          fi
+          
+          # Если create-dmg не сработал или нет бэкграунда, пробуем простую версию
+          if [ ! -f "$build_path/${dmg_name}.dmg" ]; then
+            echo "Creating simple DMG..."
+            create-dmg \
+              --volname "$app_name" \
+              --icon "$app_name.app" 150 190 \
+              --app-drop-link 450 190 \
+              --no-internet-enable \
+              "$build_path/${dmg_name}.dmg" \
+              "$build_path/$app_name.app" || echo "create-dmg failed, using hdiutil..."
+          fi
+          
+          # Fallback: используем hdiutil если create-dmg не сработал
+          if [ ! -f "$build_path/${dmg_name}.dmg" ]; then
+            echo "Using hdiutil as fallback..."
+            hdiutil create \
+              -volname "$app_name" \
+              -srcfolder "$build_path/$app_name.app" \
+              -ov \
+              -format UDZO \
+              -imagekey zlib-level=9 \
+              "$build_path/${dmg_name}.dmg"
+          fi
+          
+          # Verify DMG was created
+          if [ -f "$build_path/${dmg_name}.dmg" ]; then
+            echo "✓ DMG created successfully: ${dmg_name}.dmg"
+            echo "File size: $(du -h "$build_path/${dmg_name}.dmg" | cut -f1)"
+            # Show DMG info
+            hdiutil imageinfo "$build_path/${dmg_name}.dmg" 2>/dev/null || echo "Could not get DMG info"
+          else
+            echo "❌ DMG creation failed"
             exit 1
           fi
         shell: bash
@@ -312,16 +418,16 @@ jobs:
           asset_name: ${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}
           asset_content_type: application/octet-stream
 
-      - name: Upload asset (macOS)
+      - name: Upload DMG asset (macOS)
         if: matrix.os-name == 'macos'
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ format('./{0}/{1}/{2}.app', env.BUILD_DIR, matrix.build-dir, env.APP_NAME) }}
-          asset_name: ${{ format('{0}-{1}-{2}-{3}.app', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}
-          asset_content_type: application/octet-stream
+          asset_path: ${{ format('./{0}/{1}/{2}-{3}-{4}-{5}.dmg', env.BUILD_DIR, matrix.build-dir, env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}
+          asset_name: ${{ format('{0}-{1}-{2}-{3}.dmg', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}
+          asset_content_type: application/x-apple-diskimage
 
       - name: Show upload confirmation (Windows)
         if: matrix.os-name == 'windows'
@@ -333,6 +439,6 @@ jobs:
       - name: Show upload confirmation (macOS)
         if: matrix.os-name == 'macos'
         run: |
-          assetName="${{ format('{0}-{1}-{2}-{3}.app', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}"
-          echo "Asset uploaded successfully: $assetName"
+          assetName="${{ format('{0}-{1}-{2}-{3}.dmg', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}"
+          echo "DMG asset uploaded successfully: $assetName"
         shell: bash
