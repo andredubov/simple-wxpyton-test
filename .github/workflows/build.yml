@@ -7,8 +7,8 @@ on:
 env:
   APP_NAME: 'myapp'
   COMPANY_NAME: 'https://github.com/andredubov'
-  PRODUCT_VERSION: '1.0.0.0'
-  FILE_VERSION: '1.0.0.0'
+  PRODUCT_VERSION: '1.0.0'
+  FILE_VERSION: '1.0.0'
   BUILD_DIR: '.build'
   ICON_FILE_PATH: './assets/graph-report.ico'
   SPLASH_SCREEN_FILE_PATH: './assets/logo.png'
@@ -203,18 +203,20 @@ jobs:
 
           # For macOS, we use different Nuitka arguments
           nuitka_args=(
-            "--standalone"
+            "--mode=app"
             "--assume-yes-for-downloads"
             "--include-package=wx"
             "--include-package-data=wx"
+            "--include-module=_bisect"
+            "--include-module=_json"
             "--noinclude-unittest-mode=nofollow"
             "--noinclude-setuptools-mode=nofollow"
             "--company-name=${{ env.COMPANY_NAME }}"
             "--product-name=${{ env.APP_NAME }}"
             "--output-dir=$build_path"
-            "--macos-create-app-bundle"
             "--macos-app-name=$app_name"
             "--macos-app-icon=${{ env.ICON_FILE_PATH }}"
+            "--macos-app-version=${{ env.PRODUCT_VERSION }}"
             "./main.py"
           )
 
@@ -223,6 +225,25 @@ jobs:
           
           if [ $? -ne 0 ]; then
             echo "❌ Nuitka build failed"
+            exit 1
+          fi
+
+          echo "Checking build results..."
+          ls -la "$build_path/"
+          
+          # If main.app was created instead of myapp.app, rename it
+          if [ -d "$build_path/main.app" ] && [ ! -d "$build_path/$app_name.app" ]; then
+            echo "Renaming main.app to $app_name.app"
+            mv "$build_path/main.app" "$build_path/$app_name.app"
+          fi
+          
+          # Final verification
+          if [ -d "$build_path/$app_name.app" ]; then
+            echo "✓ App bundle created successfully: $app_name.app"
+          else
+            echo "❌ App bundle not found with expected name"
+            echo "Available .app bundles:"
+            find "$build_path" -name "*.app" -type d
             exit 1
           fi
         shell: bash
@@ -265,11 +286,17 @@ jobs:
               size=$(du -sh "$build_path" | cut -f1)
               echo "  Size: $size"
             fi
+            # Show that it's a valid app bundle
+            if [ -d "$build_path/Contents" ]; then
+              echo "  Valid app bundle structure detected"
+            fi
           else
             echo "❌ Build failed: App bundle not found at $build_path"
             # List directory contents for debugging
             echo "Directory contents:"
             ls -la "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/"
+            echo "Looking for any .app bundles:"
+            find "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -name "*.app" -type d
             exit 1
           fi
         shell: bash
