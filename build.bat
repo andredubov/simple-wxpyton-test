@@ -215,9 +215,9 @@ if !errorlevel! neq 0 (
     python -m pip --version
 )
 
-if exist "requirements.txt" (
+if exist "./requirements/x86/requirements.txt" (
     echo Установка зависимостей из requirements.txt...
-    python -m pip install -r requirements.txt
+    python -m pip install -r ./requirements/x86/requirements.txt
     if !errorlevel! neq 0 (
         echo Ошибка установки зависимостей
         pause
@@ -225,7 +225,7 @@ if exist "requirements.txt" (
     )
     echo Зависимости успешно установлены
 ) else (
-    echo Файл requirements.txt не найден, пропускаю установку зависимостей
+    echo Файл ./requirements/x86/requirements.txt не найден, пропускаю установку зависимостей
 )
 
 echo Запуск сборки с помощью Nuitka...
