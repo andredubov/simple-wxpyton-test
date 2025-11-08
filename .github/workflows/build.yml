@@ -109,7 +109,7 @@ jobs:
           Write-Host "Build output: $buildPath"
 
           $nuitkaArgs = @(
-            "--mode=onefile"
+            "--mode=app"
             "--windows-console-mode=disable"
             "--assume-yes-for-downloads"
             "--include-package=wx"
