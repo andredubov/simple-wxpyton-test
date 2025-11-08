@@ -212,6 +212,7 @@ jobs:
             "--product-name=${{ env.APP_NAME }}"
             "--output-dir=$build_path"
             "--output-filename=$app_name"
+            "--macos-app-name=$app_name"
             "--macos-create-app-bundle"
             "--macos-app-icon=${{ env.ICON_FILE_PATH }}"
             "./main.py"
