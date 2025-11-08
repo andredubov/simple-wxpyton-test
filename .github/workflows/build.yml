@@ -202,7 +202,6 @@ jobs:
 
           # For macOS, we use different Nuitka arguments
           nuitka_args=(
-            "--mode=app"
             "--assume-yes-for-downloads"
             "--include-package=wx"
             "--include-package-data=wx"
