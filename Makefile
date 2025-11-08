@@ -28,6 +28,5 @@ build: clean venv
 	--macos-app-icon=./assets/graph-report.ico \
     --macos-create-app-bundle \
     --macos-app-version=1.0.0 \
-    --onefile-windows-splash-screen-image=./assets/logo.png \
 	./main.py && \
     mv ./.build/main.app ./.build/PlotterApp.app
