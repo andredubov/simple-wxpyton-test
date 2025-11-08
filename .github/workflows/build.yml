@@ -121,7 +121,7 @@ jobs:
 
             echo "All required files found"
           fi
-        shell: ${{ matrix.shell }}
+        shell: ${{ matrix.shell }} 
 
       - uses: actions/setup-python@v5
         with:
