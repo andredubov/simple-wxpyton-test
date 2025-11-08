@@ -27,7 +27,6 @@ jobs:
           - os: windows-latest
             os-name: windows
             script-ext: '.exe'
-            shell: powershell
             python-version: '3.11'
             python-arch: 'x64'
             build-dir: 'windows-x64'
@@ -35,7 +34,6 @@ jobs:
           - os: windows-latest
             os-name: windows
             script-ext: '.exe'
-            shell: powershell
             python-version: '3.7.9'
             python-arch: 'x86'
             build-dir: 'windows-x86'
@@ -44,7 +42,6 @@ jobs:
           - os: macos-latest
             os-name: macos
             script-ext: ''
-            shell: bash
             python-version: '3.11'
             python-arch: 'x64'
             build-dir: 'macos-x64'
@@ -52,7 +49,6 @@ jobs:
           - os: macos-latest
             os-name: macos
             script-ext: ''
-            shell: bash
             python-version: '3.11'
             python-arch: 'arm64'
             build-dir: 'macos-arm64'
@@ -61,67 +57,68 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check required files
+      - name: Check required files (Windows)
+        if: matrix.os-name == 'windows'
         run: |
-          if [ "${{ matrix.os-name }}" = "windows" ]; then
-            # Windows check
-            $iconPath = "${{ env.ICON_FILE_PATH }}"
-            $splashPath = "${{ env.SPLASH_SCREEN_FILE_PATH }}"
-            $mainPath = "./main.py"
-            $requirementsPath = "${{ matrix.requirements-path }}"
+          $iconPath = "${{ env.ICON_FILE_PATH }}"
+          $splashPath = "${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          $mainPath = "./main.py"
+          $requirementsPath = "${{ matrix.requirements-path }}"
 
-            Write-Host "Checking required files..."
-            Write-Host "Icon: $iconPath"
-            Write-Host "Splash: $splashPath" 
-            Write-Host "Main script: $mainPath"
-            Write-Host "Requirements: $requirementsPath"
+          Write-Host "Checking required files..."
+          Write-Host "Icon: $iconPath"
+          Write-Host "Splash: $splashPath" 
+          Write-Host "Main script: $mainPath"
+          Write-Host "Requirements: $requirementsPath"
 
-            if (!(Test-Path $iconPath)) {
-              Write-Error "❌ Icon file not found: $iconPath"
-              exit 1
-            }
-            if (!(Test-Path $splashPath)) {
-              Write-Error "❌ Splash screen file not found: $splashPath"
-              exit 1
-            }
-            if (!(Test-Path $mainPath)) {
-              Write-Error "❌ Main script not found: $mainPath"
-              exit 1
-            }
-            if (!(Test-Path $requirementsPath)) {
-              Write-Error "❌ Requirements file not found: $requirementsPath"
-              exit 1
-            }
+          if (!(Test-Path $iconPath)) {
+            Write-Error "❌ Icon file not found: $iconPath"
+            exit 1
+          }
+          if (!(Test-Path $splashPath)) {
+            Write-Error "❌ Splash screen file not found: $splashPath"
+            exit 1
+          }
+          if (!(Test-Path $mainPath)) {
+            Write-Error "❌ Main script not found: $mainPath"
+            exit 1
+          }
+          if (!(Test-Path $requirementsPath)) {
+            Write-Error "❌ Requirements file not found: $requirementsPath"
+            exit 1
+          }
 
-            Write-Host "All required files found"
-          else
-            # macOS check
-            echo "Checking required files..."
-            echo "Icon: ${{ env.ICON_FILE_PATH }}"
-            echo "Splash: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
-            echo "Main script: ./main.py"
-            echo "Requirements: ${{ matrix.requirements-path }}"
+          Write-Host "All required files found"
+        shell: pwsh
 
-            if [ ! -f "${{ env.ICON_FILE_PATH }}" ]; then
-              echo "❌ Icon file not found: ${{ env.ICON_FILE_PATH }}"
-              exit 1
-            fi
-            if [ ! -f "${{ env.SPLASH_SCREEN_FILE_PATH }}" ]; then
-              echo "❌ Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
-              exit 1
-            fi
-            if [ ! -f "./main.py" ]; then
-              echo "❌ Main script not found: ./main.py"
-              exit 1
-            fi
-            if [ ! -f "${{ matrix.requirements-path }}" ]; then
-              echo "❌ Requirements file not found: ${{ matrix.requirements-path }}"
-              exit 1
-            fi
+      - name: Check required files (macOS)
+        if: matrix.os-name == 'macos'
+        run: |
+          echo "Checking required files..."
+          echo "Icon: ${{ env.ICON_FILE_PATH }}"
+          echo "Splash: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+          echo "Main script: ./main.py"
+          echo "Requirements: ${{ matrix.requirements-path }}"
 
-            echo "All required files found"
+          if [ ! -f "${{ env.ICON_FILE_PATH }}" ]; then
+            echo "❌ Icon file not found: ${{ env.ICON_FILE_PATH }}"
+            exit 1
           fi
-        shell: ${{ matrix.shell }} 
+          if [ ! -f "${{ env.SPLASH_SCREEN_FILE_PATH }}" ]; then
+            echo "❌ Splash screen file not found: ${{ env.SPLASH_SCREEN_FILE_PATH }}"
+            exit 1
+          fi
+          if [ ! -f "./main.py" ]; then
+            echo "❌ Main script not found: ./main.py"
+            exit 1
+          fi
+          if [ ! -f "${{ matrix.requirements-path }}" ]; then
+            echo "❌ Requirements file not found: ${{ matrix.requirements-path }}"
+            exit 1
+          fi
+
+          echo "All required files found"
+        shell: bash
 
       - uses: actions/setup-python@v5
         with:
@@ -137,12 +134,21 @@ jobs:
             ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.python-arch }}-
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os-name == 'windows'
+        run: |
+          python -m pip install --upgrade pip
+          Write-Host "Installing dependencies from: ${{ matrix.requirements-path }}"
+          pip install -r "${{ matrix.requirements-path }}"
+        shell: powershell
+
+      - name: Install dependencies (macOS)
+        if: matrix.os-name == 'macos'
         run: |
           python -m pip install --upgrade pip
           echo "Installing dependencies from: ${{ matrix.requirements-path }}"
           pip install -r "${{ matrix.requirements-path }}"
-        shell: ${{ matrix.shell }}
+        shell: bash
 
       - name: Build with Nuitka (Windows)
         if: matrix.os-name == 'windows'
@@ -220,51 +226,52 @@ jobs:
           fi
         shell: bash
 
-      - name: Verify build result
+      - name: Verify build result (Windows)
+        if: matrix.os-name == 'windows'
         run: |
-          if [ "${{ matrix.os-name }}" = "windows" ]; then
-            # Windows verification
-            $exePath = "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/${{ env.APP_NAME }}${{ matrix.script-ext }}"
-            Write-Host "Verifying build result: $exePath"
-            
-            if (Test-Path $exePath) {
-              $fileInfo = Get-Item $exePath
-              $fileSize = [math]::Round($fileInfo.Length / 1MB, 2)
-              Write-Host "✓ Build successful!"
-              Write-Host "  File: $($fileInfo.Name)"
-              Write-Host "  Size: $fileSize MB"
-              Write-Host "  Path: $($fileInfo.FullName)"
-              Write-Host "  Modified: $($fileInfo.LastWriteTime)"
-            } else {
-              Write-Error "❌ Build failed: Executable not found at $exePath"
-              # List directory contents for debugging
-              Write-Host "Directory contents:"
-              Get-ChildItem "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -Recurse | Format-Table Name, Length
-              exit 1
-            }
-          else
-            # macOS verification
-            build_path="./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/${{ env.APP_NAME }}.app"
-            echo "Verifying build result: $build_path"
-            
-            if [ -d "$build_path" ]; then
-              echo "✓ Build successful!"
-              echo "  File: ${{ env.APP_NAME }}.app"
-              echo "  Path: $build_path"
-              # Get file size
-              if command -v du &> /dev/null; then
-                size=$(du -sh "$build_path" | cut -f1)
-                echo "  Size: $size"
-              fi
-            else
-              echo "❌ Build failed: App bundle not found at $build_path"
-              # List directory contents for debugging
-              echo "Directory contents:"
-              ls -la "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/"
-              exit 1
+          $exePath = "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/${{ env.APP_NAME }}${{ matrix.script-ext }}"
+          Write-Host "Verifying build result: $exePath"
+          
+          if (Test-Path $exePath) {
+            $fileInfo = Get-Item $exePath
+            $fileSize = [math]::Round($fileInfo.Length / 1MB, 2)
+            Write-Host "✓ Build successful!"
+            Write-Host "  File: $($fileInfo.Name)"
+            Write-Host "  Size: $fileSize MB"
+            Write-Host "  Path: $($fileInfo.FullName)"
+            Write-Host "  Modified: $($fileInfo.LastWriteTime)"
+          } else {
+            Write-Error "❌ Build failed: Executable not found at $exePath"
+            # List directory contents for debugging
+            Write-Host "Directory contents:"
+            Get-ChildItem "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/" -Recurse | Format-Table Name, Length
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Verify build result (macOS)
+        if: matrix.os-name == 'macos'
+        run: |
+          build_path="./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/${{ env.APP_NAME }}.app"
+          echo "Verifying build result: $build_path"
+          
+          if [ -d "$build_path" ]; then
+            echo "✓ Build successful!"
+            echo "  File: ${{ env.APP_NAME }}.app"
+            echo "  Path: $build_path"
+            # Get file size
+            if command -v du &> /dev/null; then
+              size=$(du -sh "$build_path" | cut -f1)
+              echo "  Size: $size"
             fi
+          else
+            echo "❌ Build failed: App bundle not found at $build_path"
+            # List directory contents for debugging
+            echo "Directory contents:"
+            ls -la "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/"
+            exit 1
           fi
-        shell: ${{ matrix.shell }}
+        shell: bash
 
       - name: Upload asset (Windows)
         if: matrix.os-name == 'windows'
@@ -288,13 +295,16 @@ jobs:
           asset_name: ${{ format('{0}-{1}-{2}-{3}.app', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}
           asset_content_type: application/octet-stream
 
-      - name: Show upload confirmation
+      - name: Show upload confirmation (Windows)
+        if: matrix.os-name == 'windows'
         run: |
-          if [ "${{ matrix.os-name }}" = "windows" ]; then
-            $assetName = "${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}"
-            Write-Host "Asset uploaded successfully: $assetName"
-          else
-            assetName="${{ format('{0}-{1}-{2}-{3}.app', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}"
-            echo "Asset uploaded successfully: $assetName"
-          fi
-        shell: ${{ matrix.shell }}
+          $assetName = "${{ format('{0}-{1}-{2}-{3}{4}', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name, matrix.script-ext) }}"
+          Write-Host "Asset uploaded successfully: $assetName"
+        shell: powershell
+
+      - name: Show upload confirmation (macOS)
+        if: matrix.os-name == 'macos'
+        run: |
+          assetName="${{ format('{0}-{1}-{2}-{3}.app', env.APP_NAME, matrix.os-name, matrix.python-arch, github.ref_name) }}"
+          echo "Asset uploaded successfully: $assetName"
+        shell: bash
