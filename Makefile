@@ -1,4 +1,5 @@
 BUILD_DIR=.build
+ARCH=x86_64
 APP_NAME=MyApp
 APP_BUNDLE=./$(BUILD_DIR)/$(APP_NAME).app
 DMG_NAME=$(APP_NAME)_Installer
@@ -8,11 +9,11 @@ clean:
 	rm -rf .build .venv
 
 venv:
-	python3 -m venv .venv
+	arch -$(ARCH) python3 -m venv .venv
 	. ./.venv/bin/activate && \
 	python3 -m pip install --upgrade pip && \
 	python3 -m pip install -r ./requirements/macos/x64/requirements.txt && \
-	python3 -m pip install imageio nuitka
+	python3 -m pip install imageio
 
 build: clean venv
 	. ./.venv/bin/activate && \
@@ -34,7 +35,7 @@ build: clean venv
 	--macos-app-name=$(APP_NAME) \
 	--macos-app-icon=./assets/graph-report.ico \
 	--macos-app-version=1.0.0 \
-	--macos-target-arch=x86_64 \
+	--macos-target-arch=$(ARCH) \
 	./main.py
 
 renane-app-bundle:
