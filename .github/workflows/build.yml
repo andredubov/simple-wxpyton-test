@@ -45,15 +45,17 @@ jobs:
             os-name: macos
             script-ext: ''
             python-version: '3.11'
-            python-arch: 'x86_x64'
+            python-arch: 'x64'
             build-dir: 'macos-x64'
-            requirements-path: './requirements/macos/x86_x64/requirements.txt'
+            nuitka-target-arch: 'x86_64'
+            requirements-path: './requirements/macos/x64/requirements.txt'
           - os: macos-latest
             os-name: macos
             script-ext: ''
             python-version: '3.11'
             python-arch: 'arm64'
             build-dir: 'macos-arm64'
+            nuitka-target-arch: 'arm64'
             requirements-path: './requirements/macos/arm64/requirements.txt'
 
     steps:
@@ -237,7 +239,7 @@ jobs:
             "--macos-app-name=$app_name"
             "--macos-app-icon=$icon_path"
             "--macos-app-version=${{ env.PRODUCT_VERSION }}"
-            "--macos-target-arch=${{ matrix.python-arch }}"
+            "--macos-target-arch=${{ matrix.nuitka-target-arch }}"
             "./main.py"
           )
 
