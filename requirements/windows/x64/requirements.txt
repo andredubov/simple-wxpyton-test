@@ -1,0 +1,2 @@
+Nuitka==2.8.3
+wxPython==4.2.3

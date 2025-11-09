@@ -32,29 +32,29 @@ jobs:
             python-version: '3.11'
             python-arch: 'x64'
             build-dir: 'windows-x64'
-            requirements-path: './requirements/x64/requirements.txt'
+            requirements-path: './requirements/windows/x64/requirements.txt'
           - os: windows-latest
             os-name: windows
             script-ext: '.exe'
             python-version: '3.7.9'
             python-arch: 'x86'
             build-dir: 'windows-x86'
-            requirements-path: './requirements/x86/requirements.txt'
+            requirements-path: './requirements/windows/x86/requirements.txt'
           # macOS builds
           - os: macos-latest
             os-name: macos
             script-ext: ''
             python-version: '3.11'
-            python-arch: 'x64'
+            python-arch: 'x86_x64'
             build-dir: 'macos-x64'
-            requirements-path: './requirements/x64/requirements.txt'
+            requirements-path: './requirements/macos/x86_x64/requirements.txt'
           - os: macos-latest
             os-name: macos
             script-ext: ''
             python-version: '3.11'
             python-arch: 'arm64'
             build-dir: 'macos-arm64'
-            requirements-path: './requirements/x64/requirements.txt'
+            requirements-path: './requirements/macos/arm64/requirements.txt'
 
     steps:
       - uses: actions/checkout@v4
@@ -131,7 +131,7 @@ jobs:
           echo "All required files found"
         shell: bash
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.python-arch }}
@@ -237,6 +237,7 @@ jobs:
             "--macos-app-name=$app_name"
             "--macos-app-icon=$icon_path"
             "--macos-app-version=${{ env.PRODUCT_VERSION }}"
+            "--macos-target-arch=${{ matrix.python-arch }}"
             "./main.py"
           )
 
@@ -376,7 +377,12 @@ jobs:
             echo "Creating simple DMG..."
             create-dmg \
               --volname "$app_name" \
+              --volicon "${{ env.MACOS_ICON_PATH }}" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
               --icon "$app_name.app" 150 190 \
+              --hide-extension "$app_name.app" \
               --app-drop-link 450 190 \
               --no-internet-enable \
               "$build_path/${dmg_name}.dmg" \
