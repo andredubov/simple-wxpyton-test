@@ -44,19 +44,19 @@ jobs:
           # - os: macos-latest
           #   os-name: macos
           #   script-ext: ''
-          #   python-version: '3.11'
+          #   python-version: '3.9'
           #   python-arch: 'x64'
+          #   nuitka-arch: 'x86_64'
           #   build-dir: 'macos-x64'
-          #   nuitka-target-arch: 'x86_64'
           #   requirements-path: './requirements/macos/x64/requirements.txt'
-          # - os: macos-latest
-          #   os-name: macos
-          #   script-ext: ''
-          #   python-version: '3.11'
-          #   python-arch: 'arm64'
-          #   build-dir: 'macos-arm64'
-          #   nuitka-target-arch: 'arm64'
-          #   requirements-path: './requirements/macos/arm64/requirements.txt'
+          - os: macos-latest
+            os-name: macos
+            script-ext: ''
+            python-version: '3.11'
+            python-arch: 'arm64'
+            nuitka-arch: 'arm64'
+            build-dir: 'macos-arm64'
+            requirements-path: './requirements/macos/arm64/requirements.txt'
 
     steps:
       - uses: actions/checkout@v4
@@ -158,7 +158,7 @@ jobs:
       - name: Install dependencies (macOS)
         if: matrix.os-name == 'macos'
         run: |
-          arch -${{ matrix.nuitka-target-arch }} python -m pip install --upgrade pip
+          python -m pip install --upgrade pip
           echo "Installing dependencies from: ${{ matrix.requirements-path }}"
           python -m pip install -r "${{ matrix.requirements-path }}"
           python -m pip install imageio
@@ -245,7 +245,7 @@ jobs:
             "--macos-app-name=$app_name"
             "--macos-app-icon=$icon_path"
             "--macos-app-version=${{ env.PRODUCT_VERSION }}"
-            "--macos-target-arch=${{ matrix.nuitka-target-arch }}"
+            "--macos-target-arch=${{ matrix.nuitka-arch }}"
             "./main.py"
           )
 
@@ -310,20 +310,20 @@ jobs:
             echo "✓ Build successful!"
             echo "  File: ${{ env.APP_NAME }}.app"
             echo "  Path: $build_path"
-            # Get file size
+            # Получаем размер файла
             if command -v du &> /dev/null; then
               size=$(du -sh "$build_path" | cut -f1)
               echo "  Size: $size"
             fi
-            # Show that it's a valid app bundle
+            # Показываем, что это валидный app bundle
             if [ -d "$build_path/Contents" ]; then
               echo "  Valid app bundle structure detected"
-              echo "  Contents:"
-              find "$build_path/Contents" -type f | head -10
+              echo "  Contents (first 5 files):"
+              find "$build_path/Contents" -type f | head -5
             fi
           else
             echo "❌ Build failed: App bundle not found at $build_path"
-            # List directory contents for debugging
+            # Список содержимого директории для отладки
             echo "Directory contents:"
             ls -la "./${{ env.BUILD_DIR }}/${{ matrix.build-dir }}/"
             echo "Looking for any .app bundles:"
