@@ -49,14 +49,14 @@ jobs:
           #   build-dir: 'macos-x64'
           #   nuitka-target-arch: 'x86_64'
           #   requirements-path: './requirements/macos/x64/requirements.txt'
-          - os: macos-latest
-            os-name: macos
-            script-ext: ''
-            python-version: '3.11'
-            python-arch: 'arm64'
-            build-dir: 'macos-arm64'
-            nuitka-target-arch: 'arm64'
-            requirements-path: './requirements/macos/arm64/requirements.txt'
+          # - os: macos-latest
+          #   os-name: macos
+          #   script-ext: ''
+          #   python-version: '3.11'
+          #   python-arch: 'arm64'
+          #   build-dir: 'macos-arm64'
+          #   nuitka-target-arch: 'arm64'
+          #   requirements-path: './requirements/macos/arm64/requirements.txt'
 
     steps:
       - uses: actions/checkout@v4
