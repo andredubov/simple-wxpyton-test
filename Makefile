@@ -23,6 +23,9 @@ build: clean venv
 	--include-package=wx \
 	--include-package-data=wx \
 	--include-module=utils \
+	--include-package=matplotlib.backends.backend_wxagg \
+	--include-package=matplotlib.backends.backend_wx \
+	--include-package=matplotlib.backends.backend_agg \
 	--include-data-files=./assets/*=assets/ \
 	--noinclude-unittest-mode=nofollow \
 	--noinclude-setuptools-mode=nofollow \

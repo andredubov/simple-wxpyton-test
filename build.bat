@@ -215,9 +215,9 @@ if !errorlevel! neq 0 (
     python -m pip --version
 )
 
-if exist "./requirements/x86/requirements.txt" (
+if exist "./requirements/windows/x86/requirements.txt" (
     echo Установка зависимостей из requirements.txt...
-    python -m pip install -r ./requirements/x86/requirements.txt
+    python -m pip install -r ./requirements/windows/x86/requirements.txt
     if !errorlevel! neq 0 (
         echo Ошибка установки зависимостей
         pause
@@ -225,7 +225,7 @@ if exist "./requirements/x86/requirements.txt" (
     )
     echo Зависимости успешно установлены
 ) else (
-    echo Файл ./requirements/x86/requirements.txt не найден, пропускаю установку зависимостей
+    echo Файл ./requirements/windows/x86/requirements.txt не найден, пропускаю установку зависимостей
 )
 
 echo Запуск сборки с помощью Nuitka...
@@ -237,6 +237,9 @@ set "NUITKA_CMD=!NUITKA_CMD! --windows-console-mode=disable"
 set "NUITKA_CMD=!NUITKA_CMD! --assume-yes-for-downloads"
 set "NUITKA_CMD=!NUITKA_CMD! --include-package=wx"
 set "NUITKA_CMD=!NUITKA_CMD! --include-package-data=wx"
+set "NUITKA_CMD=!NUITKA_CMD! --include-package=matplotlib.backends.backend_wxagg"
+set "NUITKA_CMD=!NUITKA_CMD! --include-package=matplotlib.backends.backend_wx"
+set "NUITKA_CMD=!NUITKA_CMD! --include-package=matplotlib.backends.backend_agg"
 set "NUITKA_CMD=!NUITKA_CMD! --noinclude-unittest-mode=nofollow"
 set "NUITKA_CMD=!NUITKA_CMD! --noinclude-setuptools-mode=nofollow"
 set "NUITKA_CMD=!NUITKA_CMD! --company-name=%COMPANY_NAME%"
